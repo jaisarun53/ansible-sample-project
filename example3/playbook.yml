@@ -1,0 +1,163 @@
+---
+- name: Setup web server
+  hosts: web1democom
+  become: true
+
+  tasks:
+    - name: Install Apache2 package
+      apt:
+        name: apache2
+        state: present
+
+    - name: Start and enable Apache2 service
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Install all PHP and other dependencies
+      apt:
+        name:
+          - ghostscript
+          - libapache2-mod-php
+          - php
+          - php-bcmath
+          - php-curl
+          - php-imagick
+          - php-intl
+          - php-json
+          - php-mbstring
+          - php-mysql
+          - php-xml
+          - php-zip
+        state: present
+
+    - name: Create the web directory
+      ansible.builtin.file:
+        path: /srv/www
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Download and extract WordPress
+      ansible.builtin.unarchive:
+        src: https://wordpress.org/latest.tar.gz
+        dest: /srv/www
+        remote_src: yes
+        owner: www-data
+        group: www-data
+        extra_opts: [--strip-components=1]
+
+    - name: Deploy Apache virtual host config
+      template:
+        src: wordpress.conf.j2
+        dest: /etc/apache2/sites-available/wordpress.conf
+
+    - name: Enable wordpress site
+      command: a2ensite wordpress
+      args:
+        creates: /etc/apache2/sites-enabled/wordpress.conf
+      notify: restart apache
+
+    - name: Enable rewrite module
+      command: a2enmod rewrite
+      args:
+        creates: /etc/apache2/mods-enabled/rewrite.load
+      notify: restart apache
+
+    # ----- WordPress configuration -----
+    - name: Copy wp-config-sample.php to wp-config.php
+      ansible.builtin.copy:
+        src: /srv/www/wp-config-sample.php
+        dest: /srv/www/wp-config.php
+        remote_src: yes
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Set database name in wp-config.php
+      ansible.builtin.replace:
+        path: /srv/www/wp-config.php
+        regexp: "database_name_here"
+        replace: "wordpress"
+
+    - name: Set database user in wp-config.php
+      ansible.builtin.replace:
+        path: /srv/www/wp-config.php
+        regexp: "username_here"
+        replace: "wordpress"
+
+    - name: Set database password in wp-config.php
+      ansible.builtin.replace:
+        path: /srv/www/wp-config.php
+        regexp: "password_here"
+        replace: "wordpress"
+
+    - name: Set database host in wp-config.php
+      ansible.builtin.replace:
+        path: /srv/www/wp-config.php
+        regexp: "localhost"
+        replace: "db"
+
+    - name: Fetch WordPress secret keys
+      ansible.builtin.uri:
+        url: https://api.wordpress.org/secret-key/1.1/salt/
+        return_content: yes
+      register: wp_salts
+
+    - name: Remove old authentication keys from wp-config.php
+      ansible.builtin.replace:
+        path: /srv/www/wp-config.php
+        regexp: "(define\\( 'AUTH_KEY'.*?NONCE_SALT', 'put your unique phrase here' \\);)"
+        replace: ""
+
+    - name: Insert new WordPress authentication keys
+      ansible.builtin.blockinfile:
+        path: /srv/www/wp-config.php
+        block: "{{ wp_salts.content }}"
+        insertafter: "That's all, stop editing! Happy publishing."
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - AUTH KEYS"
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
+
+
+- name: Setup database server and install prerequisites
+  hosts: db
+  become: true
+
+  tasks:
+    - name: Install MariaDB server
+      yum:
+        name: mariadb-server
+        state: present
+
+    - name: Start and enable MariaDB
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: Install python3-pymysql
+      yum:
+        name: python3-PyMySQL
+        state: present
+
+    - name: Create wordpress database
+      community.mysql.mysql_db:
+        name: wordpress
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    - name: Create wordpress DB user and grant privileges
+      community.mysql.mysql_user:
+        name: wordpress
+        password: wordpress
+        priv: "wordpress.*:ALL"
+        state: present
+        login_unix_socket: /var/lib/mysql/mysql.sock
+

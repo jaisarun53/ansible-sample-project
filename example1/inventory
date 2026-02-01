@@ -1,0 +1,1 @@
+web1democom ansible_hosts=192.168.56.17 ansible_ssh_user=vagrant ansible_ssh_password=vagrant

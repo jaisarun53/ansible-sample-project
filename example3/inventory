@@ -1,0 +1,18 @@
+web1democom ansible_hosts=192.168.56.17 ansible_ssh_user=vagrant ansible_ssh_password=vagrant
+db ansible_hosts=192.168.56.18 ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/id_rsa
+
+
+[ubuntu-server]
+web1democom
+
+[centos-server]
+db
+
+
+[allserver:children]
+ubuntu-server
+centos-server
+
+[ubuntu-server:vars]
+ansible_ssh_user=admin
+#####the same varible is present in the 1st line of the command 1st that veriable will be executed after that if any prblm occurs it will use this verible value ####
