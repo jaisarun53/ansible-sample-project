@@ -1,5 +1,5 @@
-web1democom ansible_hosts=192.168.56.17 ansible_ssh_user=vagrant ansible_ssh_password=vagrant
-db ansible_hosts=192.168.56.18 ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/id_rsa
+web1democom ansible_host=192.168.56.15 ansible_ssh_user=vagrant ansible_ssh_password=vagrant
+db ansible_host=192.168.56.18 ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/id_rsa
 
 
 [ubuntu-server]
