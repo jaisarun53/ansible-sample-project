@@ -1,0 +1,19 @@
+---
+- name: setup db and apache
+  hosts: all
+  become: true
+  tasks:
+    - name: install apache2 packages on ubuntu OS
+      apt:
+        name: apache2
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+
+    - name: install mariadb on centos vm
+      yum:
+        name: mariadb-server
+        state: present
+
+      when: ansible_distribution == "CentoOS"
+

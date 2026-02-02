@@ -1,0 +1,38 @@
+---
+- name: setup db and apache
+  hosts: all
+  become: true
+
+  tasks:
+    - name: install apache2 packages on ubuntu OS
+      apt:
+        name: "{{ item }}"
+        state: present
+      when: ansible_distribution == "Ubuntu"
+      loop:
+        - apache2
+        - wget
+        - git
+        - net-tools
+
+    - name: install mariadb on centos vm
+      yum:
+        name: mariadb-server
+        state: present
+      when: ansible_distribution == "CentOS"
+
+    - name: add groups
+      group:
+        name: devop-grp
+        state: present
+
+    - name: add users
+      user:
+        name: "{{ item }}"
+        groups: devop-grp
+        state: present
+      loop:
+        - user1
+        - user2
+        - user3
+

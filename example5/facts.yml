@@ -1,0 +1,7 @@
+---
+- name: get facts about rempte server
+  hosts: all
+  tasks: 
+    - name: get the os name of the remote vms
+      debug:
+        var: ansible_distribution

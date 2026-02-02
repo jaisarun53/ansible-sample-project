@@ -128,10 +128,6 @@
 - name: Setup database server and install prerequisites
   hosts: db
   become: true
-  vars: 
-   DB_NAME: wordpress
-   DB_USER: wordpress
-   DB_PASS: wordpress
 
   tasks:
     - debug: 
