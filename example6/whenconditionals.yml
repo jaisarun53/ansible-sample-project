@@ -1,13 +1,14 @@
 ---
-- name: setup db and apache
+- name: Setup DB and Apache
   hosts: all
   become: true
 
   tasks:
-    - name: install apache2 packages on ubuntu OS
+    - name: Install packages and utilities on Ubuntu
       apt:
         name: "{{ item }}"
         state: present
+        update_cache: yes
       when: ansible_distribution == "Ubuntu"
       loop:
         - apache2
@@ -15,24 +16,69 @@
         - git
         - net-tools
 
-    - name: install mariadb on centos vm
+    - name: Install pkgs on CentOS
       yum:
-        name: mariadb-server
+        name: "{{ item }}"
         state: present
       when: ansible_distribution == "CentOS"
+      loop:
+        - mariadb-server
+        - chrony
 
-    - name: add groups
+    - name: Create devops group
       group:
         name: devop-grp
         state: present
 
-    - name: add users
+    - name: Create users and add to group
       user:
         name: "{{ item }}"
         groups: devop-grp
         state: present
-      loop:
-        - user1
-        - user2
-        - user3
+      loop: "{{ username }}"
+
+    - name: Enable and start Chrony on CentOS
+      service:
+        name: chronyd
+        state: started
+        enabled: yes
+      when: ansible_distribution == "CentOS"
+
+    - name: Enable and start Chrony on Ubuntu
+      service:
+        name: chrony
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Update Chrony config on Ubuntu
+      template:
+        src: ubuntu-chrony.conf.j2
+        dest: /etc/chrony/chrony.conf
+      when: ansible_distribution == "Ubuntu"
+      notify: restart chrony ubuntu
+
+    - name: Update Chrony config on CentOS
+      template:
+        src: centos-chrony.conf.j2
+        dest: /etc/chrony.conf
+      when: ansible_distribution == "CentOS"
+      notify: restart chrony centos
+
+    - name: Copy Apache index file (Ubuntu)
+      copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+      when: ansible_distribution == "Ubuntu"
+
+  handlers:
+    - name: restart chrony ubuntu
+      service:
+        name: chrony
+        state: restarted
+
+    - name: restart chrony centos
+      service:
+        name: chronyd
+        state: restarted
 

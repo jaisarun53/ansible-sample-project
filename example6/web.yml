@@ -1,0 +1,58 @@
+---
+- name: setup time servers
+  hosts: all
+  become: true
+  tasks:
+    - name: Install chrony on Ubuntu
+      apt:
+        name: chrony
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install chrony on CentOS
+      yum:
+        name: chrony
+        state: present
+      when: ansible_distribution == "CentOS"
+
+    - name: Enable and start chrony
+      service:
+        name: chronyd
+        state: started
+        enabled: yes
+      when: ansible_distribution == "CentOS"
+
+    - name: Enable and start chrony
+      service:
+        name: chrony
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: update chrony conf on ubuntu
+      template:
+        src: ./templates/ubuntu-chrony.conf.J2
+        dest: /etc/chrony/chrony.conf
+      when: ansible_distribution == "Ubuntu"
+      notify:
+        - restarted ntpd in Ubuntu
+
+    - name: update chrony conf on centos
+      template:
+        src: ./templates/centos-chrony.conf.j2
+        dest: /etc/chrony.conf
+      when: ansible_distribution == "CentOS"
+      notify:
+        - restarted ntpd in centos
+  handlers:
+    - name: restarted ntpd in Ubuntu
+      service:
+        name: chrony
+        state: restarted
+
+  handlers:
+    - name: restarted ntpd in centos
+      service:
+        name: chrony
+        state: restarted
