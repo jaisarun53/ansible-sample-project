@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for demo-role
+#
+username:
+   - user10
+   - user11

@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for demo-role
+- name: restart chrony ubuntu
+  service:
+    name: chrony
+    state: restarted
+
+- name: restart chrony centos
+  service:
+    name: chronyd
+    state: restarted

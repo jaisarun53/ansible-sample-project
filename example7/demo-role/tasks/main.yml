@@ -1,0 +1,69 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for demo-role
+- name: Install packages and utilities on Ubuntu
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  when: ansible_distribution == "Ubuntu"
+  loop:
+    - apache2
+    - wget
+    - git
+    - net-tools
+
+- name: Install pkgs on CentOS
+  yum:
+    name: "{{ item }}"
+    state: present
+  when: ansible_distribution == "CentOS"
+  loop:
+    - mariadb-server
+    - chrony
+
+- name: Create devops group
+  group:
+    name: devop-grp
+    state: present
+
+- name: Create users and add to group
+  user:
+    name: "{{ item }}"
+    groups: devop-grp
+    state: present
+  loop: "{{ username }}"
+
+- name: Enable and start Chrony on CentOS
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+  when: ansible_distribution == "CentOS"
+
+- name: Enable and start Chrony on Ubuntu
+  service:
+    name: chrony
+    state: started
+    enabled: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: Update Chrony config on Ubuntu
+  template:
+    src: ubuntu-chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+  when: ansible_distribution == "Ubuntu"
+  notify: restart chrony ubuntu
+
+- name: Update Chrony config on CentOS
+  template:
+    src: centos-chrony.conf.j2
+    dest: /etc/chrony.conf
+  when: ansible_distribution == "CentOS"
+  notify: restart chrony centos
+
+- name: Copy Apache index file (Ubuntu)
+  copy:
+    src: index.html
+    dest: /var/www/html/index.html
+  when: ansible_distribution == "Ubuntu"

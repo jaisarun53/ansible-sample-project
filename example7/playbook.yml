@@ -1,0 +1,6 @@
+---
+- name: Setup DB and Apache
+  hosts: all
+  become: true
+  roles:
+    - demo-role
